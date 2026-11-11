@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Карта посёлка Посевная</title>
+<link rel="stylesheet" href="lib/leaflet.css">
+<style>
+  html, body { height: 100%; margin: 0; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+
+  #map { position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+         background: #aad3df; }
+
+  .brand { position: absolute; z-index: 1000; left: 10px; top: 10px;
+    background: #ffffff; border-radius: 12px; padding: 10px 14px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.25); max-width: 290px; }
+  .brand h1 { margin: 0 0 2px; font-size: 17px; line-height: 1.25; }
+  .brand p { margin: 0; font-size: 11.5px; color: #5f6368; line-height: 1.4; }
+
+  .panel { position: absolute; z-index: 1000; left: 10px; top: 88px;
+    background: #ffffff; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.25);
+    width: 270px; max-height: calc(100% - 110px); display: flex; flex-direction: column; }
+  .panel-head { padding: 8px 12px 0; }
+  .panel-body { padding: 8px 12px 10px; overflow-y: auto; }
+  .panel-head b { font-size: 13px; }
+  .panel-head .sub { font-size: 11px; color: #5f6368; }
+
+  input.search { width: 100%; box-sizing: border-box; border: 1px solid #dadce0;
+    border-radius: 8px; padding: 7px 10px; font-size: 13px; outline: none; }
+  input.search:focus { border-color: #1a73e8; }
+
+  .layers { margin: 10px 0 6px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .layer-btn { flex: 1; border: 1px solid #dadce0; background: #fff; border-radius: 8px;
+    padding: 6px 4px; font-size: 12px; cursor: pointer; }
+  .layer-btn.active { background: #e8f0fe; border-color: #1a73e8; color: #1a73e8; font-weight: 600; }
+
+  .sect { border-top: 1px solid #eceef1; margin-top: 10px; padding-top: 8px; }
+  .sect h3 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase;
+    letter-spacing: .4px; color: #5f6368; font-weight: 700; }
+
+  .legend-row { display: flex; align-items: center; gap: 8px; padding: 3px 0;
+    font-size: 12.5px; cursor: pointer; user-select: none; }
+  .legend-row input { margin: 0; }
+  .swatch { width: 18px; height: 12px; border-radius: 3px; flex: none; }
+  .swatch.ln { height: 0; border-top: 3px solid; border-radius: 0; }
+  .swatch.txt { height: 14px; width: 20px; text-align: center; font-size: 11px;
+    line-height: 14px; color: #3c4043; font-weight: 700; background: #f1f3f4; }
+  .legend-row span.nm { flex: 1; }
+  .legend-row span.cnt { color: #80868b; font-size: 11px; }
+
+  .list { margin: 4px 0 0; padding: 0; list-style: none; }
+  .list li { padding: 5px 8px; border-radius: 8px; font-size: 12.5px; cursor: pointer;
+    display: flex; gap: 8px; align-items: center; }
+  .list li:hover { background: #f1f3f4; }
+  .list .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .list .txt { flex: 1; }
+  .list .sub { display: block; font-size: 10.5px; color: #80868b; }
+  .empty { color: #80868b; font-size: 12px; padding: 4px 2px; }
+
+  .footer { position: absolute; z-index: 1000; left: 50%; transform: translateX(-50%);
+    bottom: 8px; background: rgba(255,255,255,.92); border-radius: 999px;
+    padding: 4px 14px; font-size: 11px; color: #5f6368; box-shadow: 0 1px 6px rgba(0,0,0,.2);
+    white-space: nowrap; }
+  .footer a { color: #1a73e8; text-decoration: none; }
+
+  .leaflet-control-attribution { font-size: 10px; }
+
+  .poi-icon { background: #fff; border: 2px solid #fff; border-radius: 50%;
+    box-shadow: 0 1px 4px rgba(0,0,0,.35); box-sizing: border-box; }
+  .water-label { font-size: 11px; color: #0b4f8a; font-weight: 600;
+    text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff; white-space: nowrap; }
+  .pond-card-title { font-weight: 700; font-size: 13px; margin-bottom: 2px; }
+
+  .measure-tip { font-size: 11px; font-weight: 700; color: #111;
+    background: rgba(255,255,255,.95); border: 1px solid #999; border-radius: 6px;
+    padding: 1px 6px; white-space: nowrap; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+  .leaflet-container.measuring { cursor: crosshair !important; }
+  #measure-hint { display: none; position: absolute; z-index: 1200; left: 50%;
+    top: 10px; transform: translateX(-50%); background: #111; color: #fff;
+    border-radius: 999px; padding: 6px 16px; font-size: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.4); }
+
+  .fit-btn { position: absolute; z-index: 1000; left: 290px; top: 88px;
+    background: #fff; border: 1px solid #dadce0; border-radius: 8px;
+    padding: 6px 10px; font-size: 12px; cursor: pointer; color: #3c4043;
+    box-shadow: 0 2px 6px rgba(0,0,0,.15); }
+  .fit-btn:hover { background: #f8f9fa; }
+
+  .town-label { font-size: 15px; font-weight: 700; letter-spacing: 2px;
+    color: #5f6368; text-shadow: 0 0 4px #fff, 0 0 4px #fff, 0 0 4px #fff,
+    0 0 4px #fff, 0 0 4px #fff, 0 0 4px #fff; white-space: nowrap; }
+
+  .notice { position: absolute; z-index: 1500; left: 50%; top: 46px;
+    transform: translateX(-50%); background: #202124; color: #fff;
+    border-radius: 10px; padding: 10px 18px; font-size: 13px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.4); max-width: 80%;
+    transition: opacity .5s; }
+  .notice.hide { opacity: 0; }
+
+  @media (max-width: 640px) {
+    .brand { max-width: calc(100% - 20px); }
+    .panel { width: calc(100% - 20px); max-height: 45%; }
+    .fit-btn { left: 10px; top: auto; bottom: 52px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+<div id="measure-hint">Линейка: щёлкайте по карте, чтобы добавить точки; двойной щелчок — закончить линию; Esc — стереть</div>
+
+<div class="brand">
+  <h1>Посевная — интерактивная карта</h1>
+  <p>Черепановский район, Новосибирская область.
+     Проект «Влияние очистных сооружений на чистоту водоёма».</p>
+</div>
+
+<div class="panel">
+  <div class="panel-head">
+    <input class="search" id="search" type="text" placeholder="Поиск: улица, школа, пруд…"
+           autocomplete="off" spellcheck="false">
+  </div>
+  <div class="panel-body">
+    <div class="layers">
+      <button class="layer-btn active" id="btn-scheme"    type="button">Схема</button>
+      <button class="layer-btn" id="btn-satellite" type="button">Спутник</button>
+      <button class="layer-btn" id="btn-offline"   type="button">Автономно</button>
+    </div>
+
+    <div class="sect">
+      <h3>Слои</h3>
+      <div id="legend"></div>
+    </div>
+
+    <div class="sect">
+      <h3>Объекты</h3>
+      <ul class="list" id="objects"></ul>
+    </div>
+  </div>
+</div>
+
+<button class="fit-btn" id="btn-fit" type="button">⟵ Показать весь посёлок</button>
+
+<div class="footer">
+  Данные © участники <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>
+  (лицензия ODbL) · тайлы: схема — OSM, спутник — Esri
+</div>
+
+<script src="lib/leaflet.js"></script>
+<script src="basemap.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
