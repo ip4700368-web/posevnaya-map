@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Карта посёлка Посевная</title>
-<link rel="stylesheet" href="lib/leaflet.css">
+<link rel="stylesheet" href="leaflet.css" onerror="this.onerror=null;this.href='lib/leaflet.css';">
 <style>
   html, body { height: 100%; margin: 0; }
   body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
@@ -147,7 +147,8 @@
   (лицензия ODbL) · тайлы: схема — OSM, спутник — Esri
 </div>
 
-<script src="lib/leaflet.js"></script>
+<script src="leaflet.js"></script>
+<script>window.L || document.write('<script src="lib/leaflet.js"><\/script>');</script>
 <script src="basemap.js"></script>
 <script src="data.js"></script>
 <script src="app.js"></script>
